@@ -1,0 +1,34 @@
+{
+  "name": "tmas",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "dev:macos": "npm run tauri dev",
+    "dev:ios": "npm run tauri ios dev",
+    "dev:android": "npm run tauri android dev",
+    "build:ios": "npm run tauri ios build",
+    "build:android": "npm run tauri android build",
+    "build:macos": "npm run tauri macos build",
+    "build:windows": "npm run tauri windows build",
+    "build:linux": "npm run tauri linux build"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-opener": "^2"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "~5.6.2",
+    "vite": "^6.0.3",
+    "@tauri-apps/cli": "^2"
+  }
+}
