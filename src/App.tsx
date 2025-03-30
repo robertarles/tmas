@@ -1,4 +1,3 @@
-// src/App.tsx
 import React, { useState, useEffect } from 'react';
 
 type Status = {
@@ -15,11 +14,10 @@ type Status = {
 
 const App = () => {
   const [instanceUrl, setInstanceUrl] = useState('');
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
   const [accessToken, setAccessToken] = useState('');
   const [timeline, setTimeline] = useState<Status[]>([]);
   const [error, setError] = useState('');
+  const [authCode, setAuthCode] = useState('');
 
   // Function to register your application with the Mastodon server.
   const registerApp = async () => {
@@ -27,10 +25,10 @@ const App = () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        client_name: "Tauri Mastodon App",
-        redirect_uris: "urn:ietf:wg:oauth:2.0:oob",
-        scopes: "read write",
-        website: "http://localhost"
+        client_name: 'Tauri Mastodon App',
+        redirect_uris: 'urn:ietf:wg:oauth:2.0:oob',
+        scopes: 'read write',
+        website: 'http://localhost'
       })
     });
     if (!response.ok) {
@@ -40,23 +38,40 @@ const App = () => {
     return data; // Contains client_id and client_secret.
   };
 
-  // Function to perform login using the password grant type.
-  const loginToMastodon = async () => {
+  // Function to initiate the OAuth flow using out-of-band authorization
+  const startOauthFlow = async () => {
     try {
-      // Step 1: Register the application.
+      // Register the application
       const appData = await registerApp();
+      // Save app data to localStorage for use after manual code entry
+      localStorage.setItem('mastodonAppData', JSON.stringify(appData));
 
-      // Step 2: Request an access token using the registered credentials.
+      // Construct the authorization URL using out-of-band redirect URI
+      const authUrl = `${instanceUrl}/oauth/authorize?client_id=${appData.client_id}&redirect_uri=urn:ietf:wg:oauth:2.0:oob&response_type=code&scope=read+write`;
+      // Open the authorization URL in a new window
+      window.open(authUrl, '_blank');
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  // Function to exchange the authorization code for an access token
+  const exchangeCodeForToken = async (code: string) => {
+    try {
+      const storedAppData = localStorage.getItem('mastodonAppData');
+      if (!storedAppData) {
+        throw new Error('App data not found in local storage.');
+      }
+      const { client_id, client_secret } = JSON.parse(storedAppData);
       const tokenResponse = await fetch(`${instanceUrl}/oauth/token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          client_id: appData.client_id,
-          client_secret: appData.client_secret,
-          grant_type: "password",
-          username,
-          password,
-          scope: "read write"
+          client_id,
+          client_secret,
+          grant_type: 'authorization_code',
+          code,
+          redirect_uri: 'urn:ietf:wg:oauth:2.0:oob'
         })
       });
       if (!tokenResponse.ok) {
@@ -64,9 +79,8 @@ const App = () => {
       }
       const tokenData = await tokenResponse.json();
       setAccessToken(tokenData.access_token);
-
-      // Fetch the timeline after successful login.
-      fetchTimeline(tokenData.access_token);
+      // Optionally, remove stored app data
+      localStorage.removeItem('mastodonAppData');
     } catch (err: any) {
       setError(err.message);
     }
@@ -90,23 +104,23 @@ const App = () => {
     }
   };
 
+  // Fetch timeline when accessToken is set
   useEffect(() => {
     if (accessToken) {
       fetchTimeline(accessToken);
     }
   }, [accessToken]);
 
-  
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
-    return date.toLocaleString(); // You can customize the format here
+    return date.toLocaleString();
   };
 
   return (
     <div style={{ padding: '1rem' }}>
       {!accessToken ? (
         <div>
-          <h2>Login to Mastodon</h2>
+          <h2>Login to Mastodon via Out-of-Band OAuth</h2>
           <input
             type="text"
             placeholder="Mastodon Instance URL (e.g., https://fosstodon.org)"
@@ -114,21 +128,16 @@ const App = () => {
             onChange={(e) => setInstanceUrl(e.target.value)}
             style={{ width: '100%', marginBottom: '0.5rem' }}
           />
+          <button onClick={startOauthFlow}>Get Authorization Code</button>
+          <br /><br />
           <input
             type="text"
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Enter Authorization Code"
+            value={authCode}
+            onChange={(e) => setAuthCode(e.target.value)}
             style={{ width: '100%', marginBottom: '0.5rem' }}
           />
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={{ width: '100%', marginBottom: '0.5rem' }}
-          />
-          <button onClick={loginToMastodon}>Login</button>
+          <button onClick={() => exchangeCodeForToken(authCode)}>Submit Authorization Code</button>
           {error && <p style={{ color: 'red' }}>{error}</p>}
         </div>
       ) : (
