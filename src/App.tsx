@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { openUrl } from '@tauri-apps/plugin-opener';
+import './App.css';
 
 type Status = {
   id: string;
   content: string;
-  created_at: string; // Add created_at field
+  created_at: string;
   account: {
     id: string;
     username: string;
@@ -18,9 +20,10 @@ const App = () => {
   const [timeline, setTimeline] = useState<Status[]>([]);
   const [error, setError] = useState('');
   const [authCode, setAuthCode] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
 
   useEffect(() => {
-    const storedToken = sessionStorage.getItem('mastodonAccessToken');
+    const storedToken = localStorage.getItem('mastodonAccessToken');
     if (storedToken) {
       setAccessToken(storedToken);
     }
@@ -32,7 +35,7 @@ const App = () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        client_name: 'Tauri Mastodon App',
+        client_name: 'tmas',
         redirect_uris: 'urn:ietf:wg:oauth:2.0:oob',
         scopes: 'read write',
         website: 'http://localhost'
@@ -55,8 +58,14 @@ const App = () => {
 
       // Construct the authorization URL using out-of-band redirect URI
       const authUrl = `${instanceUrl}/oauth/authorize?client_id=${appData.client_id}&redirect_uri=urn:ietf:wg:oauth:2.0:oob&response_type=code&scope=read+write`;
-      // Open the authorization URL in a new window
-      window.open(authUrl, '_blank');
+      // If running as a Tauri (macOS) app, use Tauri's shell API to open the URL; otherwise, open in a new browser tab
+      if (__TAURI_INTERNALS__) {
+        console.log("DEBUG REMOVE APP attempting open");
+        await openUrl(authUrl);
+      } else {
+        console.log("DEBUG REMOVE WEB attempting open");
+        await window.open(authUrl, '_blank');
+      }
     } catch (err: any) {
       setError(`startOauthFlow: ${err.message}`);
     }
@@ -93,7 +102,7 @@ const App = () => {
       }
       const tokenData = await tokenResponse.json();
       setAccessToken(tokenData.access_token);
-      sessionStorage.setItem('mastodonAccessToken', tokenData.access_token);
+      localStorage.setItem('mastodonAccessToken', tokenData.access_token);
       // Optionally, remove stored app data
       localStorage.removeItem('mastodonAppData');
     } catch (err: any) {
@@ -130,20 +139,20 @@ const App = () => {
   }, [accessToken]);
   // Add this useEffect after the one that loads the access token
   useEffect(() => {
-    const storedInstanceUrl = sessionStorage.getItem('mastodonInstanceUrl');
+    const storedInstanceUrl = localStorage.getItem('mastodonInstanceUrl');
     if (storedInstanceUrl) {
       setInstanceUrl(storedInstanceUrl);
     }
   }, []);
 
-  // Add this useEffect to update sessionStorage whenever instanceUrl changes
+  // Add this useEffect to update localStorage whenever instanceUrl changes
   useEffect(() => {
     if (instanceUrl) {
-      sessionStorage.setItem('mastodonInstanceUrl', instanceUrl);
+      localStorage.setItem('mastodonInstanceUrl', instanceUrl);
     }
   }, [instanceUrl]);
     const logout = () => {
-      sessionStorage.removeItem('mastodonAccessToken');
+      localStorage.removeItem('mastodonAccessToken');
       setAccessToken('');
       setTimeline([]);
     };
@@ -179,13 +188,43 @@ const App = () => {
         </div>
       ) : (
         <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h2>Your Timeline</h2>
-            <a href="#" onClick={logout} style={{ textDecoration: 'none', fontSize: '0.9rem' }}>Logout</a>
+            <div>
+              <button
+                onClick={() => setShowDropdown(!showDropdown)}
+                style={{ background: 'none', border: 'none', color: '#80c0ff', fontSize: '0.9rem', cursor: 'pointer' }}
+              >
+                Menu
+              </button>
+              {showDropdown && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    right: 0,
+                    top: '100%',
+                    backgroundColor: '#3a3a3a',
+                    border: '1px solid #444',
+                    borderRadius: '8px',
+                    padding: '0.5rem',
+                    marginTop: '0.5rem'
+                  }}
+                >
+                  <a
+                    href="#"
+                    onClick={() => { setShowDropdown(false); logout(); }}
+                    style={{ color: '#80c0ff', textDecoration: 'none' }}
+                  >
+                    Logout
+                  </a>
+                </div>
+              )}
+            </div>
           </div>
           <div style={{
             maxHeight: '80vh',
             overflowY: 'scroll',
+            overflowX: 'hidden',  // Added to hide horizontal scrollbar
             border: '1px solid #ccc',
             padding: '1rem'
           }}>
@@ -201,7 +240,14 @@ const App = () => {
                     {formatDate(status.created_at)}
                   </span>
                 </div>
-                <div dangerouslySetInnerHTML={{ __html: status.content }} />
+                <div
+                  style={{
+                    overflowX: 'hidden',
+                    wordWrap: 'break-word',
+                    whiteSpace: 'normal'
+                  }}
+                  dangerouslySetInnerHTML={{ __html: status.content }}
+                />
               </div>
             ))}
           </div>

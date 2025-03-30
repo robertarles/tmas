@@ -1,116 +1,82 @@
-.logo.vite:hover {
-  filter: drop-shadow(0 0 2em #747bff);
-}
+/* App.css - Dark Theme */
 
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafb);
-}
-:root {
-  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 400;
-
-  color: #0f0f0f;
-  background-color: #f6f6f6;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  -webkit-text-size-adjust: 100%;
-}
-
-.container {
+body {
+  background-color: #2f2f2f;
+  color: #e0e0e0;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   margin: 0;
-  padding-top: 10vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  text-align: center;
+  padding: 0;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: 0.75s;
-}
-
-.logo.tauri:hover {
-  filter: drop-shadow(0 0 2em #24c8db);
-}
-
-.row {
-  display: flex;
-  justify-content: center;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-
-a:hover {
-  color: #535bf2;
-}
-
-h1 {
-  text-align: center;
-}
-
-input,
-button {
+input, button {
   border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  color: #0f0f0f;
-  background-color: #ffffff;
-  transition: border-color 0.25s;
-  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
+  padding: 0.5rem;
+  border: 1px solid #444;
+  background-color: #555;
+  color: #e0e0e0;
+  font-size: 1rem;
+}
+
+input:focus, button:focus {
+  outline: none;
+  border-color: #888;
 }
 
 button {
   cursor: pointer;
+  transition: background-color 0.3s ease;
 }
 
 button:hover {
-  border-color: #396cd8;
-}
-button:active {
-  border-color: #396cd8;
-  background-color: #e8e8e8;
+  background-color: #666;
 }
 
-input,
-button {
-  outline: none;
+a {
+  color: #80c0ff;
+  text-decoration: none;
 }
 
-#greet-input {
-  margin-right: 5px;
+a:hover {
+  text-decoration: underline;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color: #f6f6f6;
-    background-color: #2f2f2f;
-  }
+/* Container to center app content */
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 1rem;
+}
 
-  a:hover {
-    color: #24c8db;
-  }
+/* Header styling for timeline view */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 
-  input,
-  button {
-    color: #ffffff;
-    background-color: #0f0f0f98;
-  }
-  button:active {
-    background-color: #0f0f0f69;
-  }
+/* Styling for the timeline container */
+.timeline {
+  max-height: 80vh;
+  overflow-y: scroll;
+  border: 1px solid #444;
+  padding: 1rem;
+  background-color: #3a3a3a;
+}
+
+/* Styling for status items */
+.status-item {
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #555;
+  padding-bottom: 0.5rem;
+}
+
+/* Styling for status header */
+.status-header {
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+}
+
+/* Error messages */
+.error {
+  color: #ff8080;
 }
