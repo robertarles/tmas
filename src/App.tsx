@@ -19,6 +19,13 @@ const App = () => {
   const [error, setError] = useState('');
   const [authCode, setAuthCode] = useState('');
 
+  useEffect(() => {
+    const storedToken = sessionStorage.getItem('mastodonAccessToken');
+    if (storedToken) {
+      setAccessToken(storedToken);
+    }
+  }, []);
+
   // Function to register your application with the Mastodon server.
   const registerApp = async () => {
     const response = await fetch(`${instanceUrl}/api/v1/apps`, {
@@ -51,7 +58,7 @@ const App = () => {
       // Open the authorization URL in a new window
       window.open(authUrl, '_blank');
     } catch (err: any) {
-      setError(err.message);
+      setError(`startOauthFlow: ${err.message}`);
     }
   };
 
@@ -62,7 +69,14 @@ const App = () => {
       if (!storedAppData) {
         throw new Error('App data not found in local storage.');
       }
-      const { client_id, client_secret } = JSON.parse(storedAppData);
+      let appData;
+      try {
+        appData = JSON.parse(storedAppData);
+      } catch (e) {
+        localStorage.removeItem('mastodonAppData');
+        throw new Error('Stored app data is invalid. Please restart the authentication flow.');
+      }
+      const { client_id, client_secret } = appData;
       const tokenResponse = await fetch(`${instanceUrl}/oauth/token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -79,17 +93,19 @@ const App = () => {
       }
       const tokenData = await tokenResponse.json();
       setAccessToken(tokenData.access_token);
+      sessionStorage.setItem('mastodonAccessToken', tokenData.access_token);
       // Optionally, remove stored app data
       localStorage.removeItem('mastodonAppData');
     } catch (err: any) {
-      setError(err.message);
+      setError(`exchangeCodeForToken: ${err}`);
     }
   };
 
   // Function to fetch the home timeline.
   const fetchTimeline = async (token: string) => {
+    let timelineResponse;
     try {
-      const timelineResponse = await fetch(`${instanceUrl}/api/v1/timelines/home`, {
+      timelineResponse = await fetch(`${instanceUrl}/api/v1/timelines/home`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -100,7 +116,9 @@ const App = () => {
       const timelineData = await timelineResponse.json();
       setTimeline(timelineData);
     } catch (err: any) {
-      setError(err.message);
+      setError(`fetchTimeline: ${err}`);
+      console.error(err);
+      console.error(timelineResponse)
     }
   };
 
@@ -110,6 +128,25 @@ const App = () => {
       fetchTimeline(accessToken);
     }
   }, [accessToken]);
+  // Add this useEffect after the one that loads the access token
+  useEffect(() => {
+    const storedInstanceUrl = sessionStorage.getItem('mastodonInstanceUrl');
+    if (storedInstanceUrl) {
+      setInstanceUrl(storedInstanceUrl);
+    }
+  }, []);
+
+  // Add this useEffect to update sessionStorage whenever instanceUrl changes
+  useEffect(() => {
+    if (instanceUrl) {
+      sessionStorage.setItem('mastodonInstanceUrl', instanceUrl);
+    }
+  }, [instanceUrl]);
+    const logout = () => {
+      sessionStorage.removeItem('mastodonAccessToken');
+      setAccessToken('');
+      setTimeline([]);
+    };
 
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
@@ -142,7 +179,10 @@ const App = () => {
         </div>
       ) : (
         <div>
-          <h2>Your Timeline</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2>Your Timeline</h2>
+            <a href="#" onClick={logout} style={{ textDecoration: 'none', fontSize: '0.9rem' }}>Logout</a>
+          </div>
           <div style={{
             maxHeight: '80vh',
             overflowY: 'scroll',
